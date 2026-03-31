@@ -12,6 +12,11 @@ It is not just a stricter pass over implementation defects.
 Raw slash-command arguments:
 `$ARGUMENTS`
 
+Multi-model guard:
+- If the raw arguments contain `--models`, stop immediately and tell the user:
+  `"--models is not supported for adversarial reviews yet. Use /byom-review:review --models instead."`
+- Do not proceed with the review.
+
 Core constraint:
 - This command is review-only.
 - Do not fix issues, apply patches, or suggest that you are about to make changes.

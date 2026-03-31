@@ -1,6 +1,6 @@
 ---
 description: Run a code review using any model via OpenRouter
-argument-hint: '[--model <id>] [--base <ref>] [--scope auto|working-tree|branch]'
+argument-hint: '[--model <id>] [--models <id,id,...>] [--base <ref>] [--scope auto|working-tree|branch]'
 disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash(node:*), Bash(git:*), AskUserQuestion
 ---
@@ -32,7 +32,9 @@ Execution mode rules:
 
 Argument handling:
 - Preserve the user's arguments exactly.
-- The companion script parses `--wait`, `--model`, `--base`, and `--scope`.
+- The companion script parses `--wait`, `--model`, `--models`, `--base`, and `--scope`.
+- `--model` and `--models` are mutually exclusive. The script enforces this.
+- `--models` accepts a comma-separated list of model IDs (2-5 models) for multi-model comparison.
 - Supported models: any model ID from OpenRouter (e.g., `anthropic/claude-sonnet-4`, `openai/gpt-4o`, `google/gemini-2.0-flash`).
 - It supports working-tree review, branch review, and `--base <ref>`.
 - If the user needs custom review instructions or more adversarial framing, they should use `/byom-review:adversarial-review`.
@@ -56,3 +58,14 @@ Bash({
 })
 ```
 - After launching the command, tell the user: "Code review started in the background."
+
+Multi-model synthesis (when `--models` is present):
+- The companion script outputs individual reviews from each model, a failed models section (if any), and aggregate stats.
+- After presenting the script output verbatim, synthesize a **Comparative Analysis** section covering:
+  - **Verdict consensus:** did models agree or disagree on approve vs needs-attention?
+  - **Finding overlap:** which issues were flagged by multiple models (higher confidence) vs. unique to one model?
+  - **Severity alignment:** did models rate the same issues at the same severity level?
+  - **Notable disagreements:** where models contradicted each other, with your reasoning about which is likely correct based on the code context.
+  - **Combined recommendation:** ship or don't ship, based on the weight of evidence across all models.
+- The synthesis is your analysis — it is the one exception to "return output verbatim" for this command.
+- Do not fix any issues. The synthesis is analytical, not prescriptive.

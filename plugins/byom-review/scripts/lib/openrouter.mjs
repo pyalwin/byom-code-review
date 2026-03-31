@@ -16,7 +16,7 @@ export class OpenRouterClient {
     return Boolean(this.apiKey);
   }
 
-  async chatCompletion({ messages, model, responseFormat, temperature, maxTokens }) {
+  async chatCompletion({ messages, model, responseFormat, temperature, maxTokens, signal }) {
     if (!this.apiKey) {
       throw new Error(
         `OPENROUTER_API_KEY is not set. Get one at https://openrouter.ai/keys and set it in your environment.`
@@ -38,7 +38,7 @@ export class OpenRouterClient {
       body.max_tokens = maxTokens;
     }
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const fetchOptions = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -47,7 +47,12 @@ export class OpenRouterClient {
         "X-Title": "byom-code-review"
       },
       body: JSON.stringify(body)
-    });
+    };
+    if (signal) {
+      fetchOptions.signal = signal;
+    }
+
+    const response = await fetch(`${this.baseUrl}/chat/completions`, fetchOptions);
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => "");
@@ -87,6 +92,29 @@ export class OpenRouterClient {
 
     const data = await response.json();
     return data.data ?? [];
+  }
+
+  /**
+   * Check which models support structured_outputs (json_schema response format).
+   * Returns a Set of model IDs that support it.
+   */
+  async getStructuredOutputSupport(modelIds) {
+    try {
+      const allModels = await this.listModels();
+      const lookup = new Map(allModels.map((m) => [m.id, m]));
+      const supported = new Set();
+      for (const id of modelIds) {
+        const meta = lookup.get(id);
+        if (meta?.supported_parameters?.includes("structured_outputs")) {
+          supported.add(id);
+        }
+      }
+      return supported;
+    } catch {
+      // If the models endpoint fails, assume all support it and let the
+      // runtime fallback handle any that don't.
+      return new Set(modelIds);
+    }
   }
 
   async validateApiKey() {

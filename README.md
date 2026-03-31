@@ -61,10 +61,12 @@ Runs a code review on your current work using any model via OpenRouter.
 /byom-review:review --base main
 /byom-review:review --model openai/gpt-4o
 /byom-review:review --model google/gemini-2.0-flash --scope branch
+/byom-review:review --models anthropic/claude-sonnet-4,openai/gpt-4o,google/gemini-2.0-flash
 ```
 
 Supports:
 - `--model <id>` — any OpenRouter model
+- `--models <id,id,...>` — run 2-5 models simultaneously for a multi-model comparison review
 - `--base <ref>` — branch review against a base ref
 - `--scope <auto|working-tree|branch>` — review scope
 - `--wait` — run in foreground
@@ -102,6 +104,29 @@ Any model available on OpenRouter works. Popular choices:
 | DeepSeek R1 | `deepseek/deepseek-r1` |
 
 See the full list at [openrouter.ai/models](https://openrouter.ai/models).
+
+## Multi-Model Reviews
+
+Pass `--models` with a comma-separated list of 2-5 model IDs to run them simultaneously:
+
+```bash
+/byom-review:review --models anthropic/claude-sonnet-4,openai/gpt-4o,google/gemini-2.0-flash
+```
+
+Models run in parallel with straggler timeout detection — if most models finish, slow ones are cancelled rather than blocking the result. After individual reviews, a comparative synthesis covers:
+
+- **Verdict consensus** — did models agree on approve vs needs-attention?
+- **Finding overlap** — issues flagged by multiple models (higher confidence) vs unique to one
+- **Severity alignment** — did models rate the same issues at the same level?
+- **Notable disagreements** — where models contradicted each other
+- **Combined recommendation** — ship or don't ship, based on the weight of evidence
+
+`--models` is not supported for adversarial reviews.
+
+| Variable | Default | Description |
+|---|---|---|
+| `BYOM_STRAGGLER_TIMEOUT_MS` | `300000` | Time to wait for slow models after the first completes |
+| `BYOM_GLOBAL_TIMEOUT_MS` | `300000` | Maximum total time for all models |
 
 ## Review Output
 

@@ -63,7 +63,7 @@ function buildStructuredOutputInstructions(schema) {
   ].join("\n");
 }
 
-export async function runReview({ client, gitContext, systemPrompt, schema, model, useJsonSchema = true }) {
+export async function runReview({ client, gitContext, systemPrompt, schema, model, signal, useJsonSchema = true }) {
   const messages = [];
 
   if (useJsonSchema) {
@@ -96,13 +96,20 @@ export async function runReview({ client, gitContext, systemPrompt, schema, mode
     result = await client.chatCompletion({
       messages,
       model,
-      responseFormat
+      responseFormat,
+      signal
     });
   } catch (error) {
     if (useJsonSchema && error.message?.includes("does not support")) {
-      return runReview({ client, gitContext, systemPrompt, schema, model, useJsonSchema: false });
+      return runReview({ client, gitContext, systemPrompt, schema, model, signal, useJsonSchema: false });
     }
     throw error;
+  }
+
+  // Some models silently return empty content when they don't support json_schema —
+  // retry with json_object fallback (schema injected into the prompt instead).
+  if (useJsonSchema && !result.content) {
+    return runReview({ client, gitContext, systemPrompt, schema, model, signal, useJsonSchema: false });
   }
 
   const parsed = parseStructuredOutput(result.content);

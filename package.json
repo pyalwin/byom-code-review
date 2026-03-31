@@ -1,6 +1,6 @@
 {
   "name": "byom-code-review",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "Bring Your Own Model — code review with any AI model via OpenRouter.",
